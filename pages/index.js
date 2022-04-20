@@ -1,9 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useStateValidator, useValidate } from "react-indicative-hooks"
 import { useValidateAll } from "react-indicative-hooks"
 import { create } from "ipfs-http-client"
-import { Box, Button, Container, Text, Heading, HStack, Input, Spacer, Image, Spinner, Link } from '@chakra-ui/react'
-
+import { Box, Button, Container, Text, Heading, HStack, Input, Spacer, Image, Spinner, Link, FormControl, FormLabel } from '@chakra-ui/react'
 const client = create("https://ipfs.infura.io:5001/api/v0")
 
 export function getStaticProps() { 
@@ -14,6 +13,11 @@ export function getStaticProps() {
     },
     revalidate: 60
   }
+}
+
+const itemState = {
+  name: '',
+  username: ''
 }
 
 export default function Home({ time }) {
@@ -30,6 +34,8 @@ export default function Home({ time }) {
   const [fileUrlAudio, updateFileUrlAudio] = useState("")
   const [fileUrlJson, updateFileUrlJson] = useState("")
   const data = []
+
+  const [item, setItem] = useState(itemState)
 
   const rules = {
     name: "required",
@@ -141,6 +147,25 @@ export default function Home({ time }) {
     fetch('/api/revalidate')
   }
 
+  async function upload() {
+    const jsonData = JSON.stringify(item)
+    console.log(jsonData)
+    try {
+      const added = await client.add(jsonData)
+      const url = `ipfs://${added.path}`
+      console.log(added)
+      console.log("cid: " + added.cid)
+      console.log("url: " + url)
+      updateFileUrlJson(url)
+    } catch (error) {
+      console.log('Error uploading file: ', error)
+    }  
+  }
+
+  function onChange ({ target: { name, value } }) {
+    setItem({ ...item, [name]: value })
+  }
+
   return (
     <Box mt={8}>
       <Container maxW="container.xl">
@@ -177,7 +202,7 @@ export default function Home({ time }) {
           {error && "useStateValidator: " + error.message}
         </Text>
         <Heading size="xl" mb={4}>IPFS Upload</Heading>
-        <Text>Image</Text>
+        <Heading size="md" mb={2}>Image</Heading>
         <Input
           type="file"
           onChange={onChangeImage}
@@ -197,7 +222,7 @@ export default function Home({ time }) {
             </Box>
           )
         }
-        <Text>Video</Text>
+        <Heading size="md" mb={2}>Video</Heading>
         <Input
           type="file"
           onChange={onChangeVideo}
@@ -216,7 +241,7 @@ export default function Home({ time }) {
             </video>
           )  
         }
-        <Text>Audio</Text>
+        <Heading size="md" mb={2}>Audio</Heading>
         <Input
           type="file"
           onChange={onChangeAudio}
@@ -234,7 +259,16 @@ export default function Home({ time }) {
             </audio>
           )
         }
-        <Text>Metadata</Text>
+        <Heading size="md" mb={2}>JSON</Heading>
+        <FormControl mb={4}>
+          <FormLabel>Name</FormLabel>
+          <Input name="name" onChange={onChange} />
+        </FormControl>
+        <FormControl mb={4}>
+          <FormLabel>Username</FormLabel>
+          <Input name="username" onChange={onChange} />
+        </FormControl>
+        <Button onClick={upload} mb={4}>Upload to IPFS</Button>
         <Input
           type="file"
           onChange={onChangeJson}
@@ -251,7 +285,7 @@ export default function Home({ time }) {
             </Link>
           )
         }
-        <Heading size="xl" mt={8} mb={2}>Static Regeneration</Heading>
+        <Heading size="xl" mt={4} mb={2}>Static Regeneration</Heading>
         <Text mb={2}>{time}</Text>
         <Button onClick={() => revalidate()} mb={16}>Revalidate</Button>
       </Container>
